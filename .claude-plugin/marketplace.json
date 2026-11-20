@@ -1,0 +1,15 @@
+{
+  "name": "agency-of-one",
+  "owner": {
+    "name": "Sam P.",
+    "url": "https://github.com/sam-pop"
+  },
+  "plugins": [
+    {
+      "name": "agency-of-one",
+      "source": "./",
+      "description": "Make Claude Code's websites and UIs stop looking AI-generated."
+    }
+  ],
+  "description": "Agency-grade, non-AI-looking web design for Claude Code."
+}

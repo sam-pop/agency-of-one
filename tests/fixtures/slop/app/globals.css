@@ -1,0 +1,2 @@
+:root{ --radius: 0.625rem; --primary: oklch(0.205 0 0); --bg:#0B0B0B; --cream:#F4F1EA; --accent:#D97757; }
+.card{ box-shadow: 0 0 40px rgba(0,0,0,0.1); font-family: 'Inter', sans-serif; }

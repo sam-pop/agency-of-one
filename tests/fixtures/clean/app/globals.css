@@ -1,0 +1,3 @@
+:root{ --ink:#1d2a44; --paper:#cfd8c4; --signal:#c8312b; --font-display:'Big Shoulders Display', serif; --text-0: 1rem; --text-1: 1.333rem; }
+body{ font-family: 'Literata', serif; background: var(--paper); color: var(--ink); }
+@media (prefers-reduced-motion: reduce){ *{animation:none} }

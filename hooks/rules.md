@@ -1,0 +1,13 @@
+<!-- agency-of-one:start -->
+## Frontend / UI design (always applies)
+Any work that decides how a page, screen, or component looks uses the `agency-of-one` skill. The bar: **it looks like an exceptional agency made it: business-forward, polished, cohesive, and never AI-generated or templated.** These rules are always in force:
+
+- **`DESIGN.md` at the repo root is the visual source of truth.** If it exists, follow it exactly. If not, run the skill's Phases 1–2 (strategy → draw → 5 directions → independent `direction-critic` → `draw.mjs --pick`) and write it **before any UI code**.
+- **Never choose the aesthetic by instinct.** The levers (composition, brand device, palette strategy, brand hue, type strategy) come from `draw.mjs`; the direction comes from the critic-scored pick.
+- **Build the hero set piece first, in isolation, then the page, then the craft finish pass** (`references/craft.md`). Polish is part of the work, not a nice-to-have.
+- **Never fabricate proof.** No invented stats, testimonials, client logos, or fake dashboards. Missing assets become art-directed slots.
+- **Banned unless DESIGN.md justifies them:** Inter/Roboto/Open Sans/Arial/system fonts; the "tasteful AI" fonts (Space Grotesk, Fraunces, Instrument Serif, Geist, Bricolage, Satoshi, DM Sans, Plus Jakarta, Playfair, JetBrains Mono as decoration); purple/indigo/violet and blue→purple gradients; gradient text; glows and glassmorphism; cream `#F4F1EA` + terracotta `#D97757`; near-black + a single acid accent; centred hero + subhead + two buttons; three equal icon cards; ALL-CAPS tracked eyebrows; `A · B · C` meta; `→` on links; one italic word in a headline; 01/02/03 without a real sequence; fade-up on every section; one radius and soft shadow everywhere; untouched shadcn theme; buzzword copy ("seamless", "supercharge", "unlock", "elevate", "Get Started"). Agency clichés too: scroll-jacking, cursor blobs, gratuitous WebGL, gradient-mesh SaaS clones, abstract 3D shapes.
+- **Avoid the anti-slop fingerprint (G4) too:** no "Nobody else." / "What X is not" voice, no narrated demos ("The buttons work. Try them."), no "Question N of M" scaffolding, no section describing what it would say. Write like the company's best marketer; cut what you can't fill. Typographic quotes. White grounds and real cards are allowed.
+- **shadcn/Radix supply behaviour only.** Restyle every primitive through DESIGN.md tokens.
+- **Not done until verified:** `slop-lint` has zero errors, screenshots (including mobile fold and states) have been *looked at*, `plan-diff` passes, and the blind `design-reviewer` returns SHIP (every craft axis ≥ 8). Max 3 rounds, keep the best. `/design-review` runs the loop.
+<!-- agency-of-one:end -->
