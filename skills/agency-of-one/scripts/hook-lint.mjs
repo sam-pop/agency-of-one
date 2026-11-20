@@ -11,10 +11,19 @@ let raw = "";
 for await (const chunk of process.stdin) raw += chunk;
 let fp;
 try { const j = JSON.parse(raw); fp = j.tool_input?.file_path || j.tool_input?.path; } catch { process.exit(0); }
-if (!fp || !/\.(tsx|jsx|html?|css|scss|vue|svelte|astro|mdx)$/.test(fp) || /node_modules|\.claude\//.test(fp)) process.exit(0);
+if (!fp || !/\.(tsx|jsx|html?|css|scss|vue|svelte|astro|mdx)$/.test(fp)) process.exit(0);
 
 const lint = join(dirname(fileURLToPath(import.meta.url)), "slop-lint.mjs");
-const cwd = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+let cwd = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+// Skip node_modules and the project's own .claude/ config, judged on the path RELATIVE to the
+// project: Claude Code worktrees live in .claude/worktrees/<name>/ and must still be linted,
+// from the worktree's root so its own DESIGN.md / slop-lint.config.json apply.
+const segs = relative(cwd, fp).split(/[\\/]/);
+if (segs.includes("node_modules")) process.exit(0);
+if (segs[0] === ".claude") {
+  if (segs[1] !== "worktrees" || !segs[2]) process.exit(0);
+  cwd = join(cwd, ".claude", "worktrees", segs[2]);
+}
 const r = spawnSync(process.execPath, [lint, relative(cwd, fp) || fp, "--quiet", "--file-mode"], { cwd, encoding: "utf8" });
 const out = (r.stdout || "").trim();
 if (r.status === 1) {

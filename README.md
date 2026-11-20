@@ -169,7 +169,7 @@ Two modes: **agency** (default; business-forward and polished) and **expressive*
 | `node $S/scripts/update-check.mjs --force` | Check for a newer release |
 
 <details>
-<summary><b>What the linter catches</b> (60 rules, 4 generations)</summary>
+<summary><b>What the linter catches</b> (61 rules, 4 generations)</summary>
 
 | Generation | Examples |
 |---|---|

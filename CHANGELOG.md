@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.1.1 (2026-11-20): fixes
+
+### Fixed
+- **Lint hook in worktrees:** the edit hook skipped every path containing `.claude/`, so pages built inside a Claude Code worktree (`.claude/worktrees/<name>/`) were never linted. It now skips only the project's own `.claude/` config and lints worktrees from the worktree's root, so that worktree's DESIGN.md and lint config apply.
+- **Screenshot security (shipped in v1.1.0, now documented):** `screenshot.mjs --file` no longer launches Chromium with `--allow-file-access-from-files`, which let any script on the page read any file on disk. It serves pages from `127.0.0.1` instead: only files under the current folder, never dotfiles (`.env`, `.git`), and only requests whose Host header is `127.0.0.1:<port>`. **Behaviour change:** `--file` pages must sit inside the folder you run it from; `cd` to the site folder first.
+- **Rule count:** the plugin description said 57 rules; the linter has 61.
+
 ## v1.1.0 (2026-11-20): beauty first, brand first
 v1.0 succeeded at not looking AI-made, but a real client build looked plain and off-brand. v1.1 changes the priority: **beautiful and right for the client first, then distinctive.**
 
@@ -29,7 +36,7 @@ A real nonprofit client site (three pages) that v1.0 built "not AI, but not good
 - New tells section (G5) from the blind panel: invented seals, one hero stamped on every page, content shown twice, photo availability driving hierarchy, dropped content, self-quoting, and a mobile fold without the action.
 
 ### Upgrading from v1.0
-1. Update the plugin (above) and restart Claude Code.
+1. Update the plugin (above) and restart Claude Code. Drop-in installs from v1.0 don't have `update.sh` yet: run `git pull && ./install.sh` once in your clone (with the flags you installed with, e.g. `--global`); after that, `./update.sh` works.
 2. In each project with a DESIGN.md, run `/agency-of-one:upgrade-design`. It checks your palette against your brand assets and proposes changes; nothing is applied without your OK.
 
 ## v1.0.0 (2026-11-20)

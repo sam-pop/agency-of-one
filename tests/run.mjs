@@ -2,7 +2,7 @@
 // Self-tests: the linter catches the slop fixture, stays silent on the clean one,
 // the hook exits 2 on errors, the design log detects repeats, and the deck draws valid cards.
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync, cpSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -22,6 +22,14 @@ const hook = run([join(S, "hook-lint.mjs")], { input: JSON.stringify({ tool_inpu
 ok(hook.status === 2 && /slop-lint flagged/.test(hook.stderr), "edit hook exits 2 with findings on stderr");
 const hookClean = run([join(S, "hook-lint.mjs")], { input: JSON.stringify({ tool_input: { file_path: join(root, "tests/fixtures/clean/app/page.tsx") } }), env: { ...process.env, CLAUDE_PROJECT_DIR: join(root, "tests/fixtures/clean") } });
 ok(hookClean.status === 0, "edit hook passes clean file");
+// worktrees live under .claude/worktrees/: the hook must still lint there, but skip real .claude/ config
+const wt = mkdtempSync(join(tmpdir(), "aoo-wt-")); const wtSite = join(wt, ".claude/worktrees/x");
+cpSync(join(root, "tests/fixtures/slop"), wtSite, { recursive: true }); mkdirSync(join(wt, ".claude/skills"), { recursive: true }); cpSync(join(root, "tests/fixtures/slop/app/page.tsx"), join(wt, ".claude/skills/page.tsx"));
+const hookAt = (fp, proj) => run([join(S, "hook-lint.mjs")], { input: JSON.stringify({ tool_input: { file_path: fp } }), env: { ...process.env, CLAUDE_PROJECT_DIR: proj } }).status;
+ok(hookAt(join(wtSite, "app/page.tsx"), wt) === 2, "edit hook lints files in .claude/worktrees/ (project = main repo)");
+ok(hookAt(join(wtSite, "app/page.tsx"), wtSite) === 2, "edit hook lints files in .claude/worktrees/ (project = worktree)");
+ok(hookAt(join(wt, ".claude/skills/page.tsx"), wt) === 0, "edit hook still skips .claude/ config files");
+rmSync(wt, { recursive: true, force: true });
 for (const f of ["agents/design-reviewer.md", "agents/direction-critic.md", "commands/design-review.md", "hooks/rules.md", "skills/agency-of-one/references/agency.md", "skills/agency-of-one/references/craft.md", "skills/agency-of-one/scripts/type-specimen.mjs"]) ok(existsSync(join(root, f)), `ships ${f}`);
 
 const tmp = mkdtempSync(join(tmpdir(), "df-")); const log = join(tmp, "log.md");
