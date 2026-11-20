@@ -2,7 +2,7 @@
 // screenshot.mjs: render pages and measure what ACTUALLY shipped to the browser.
 //
 //   node screenshot.mjs --url http://localhost:3000 --routes / /pricing [--out .design-review]
-//   node screenshot.mjs --file ./index.html            # static file, no server
+//   node screenshot.mjs --file ./index.html            # static files under cwd, served on 127.0.0.1 (no dotfiles)
 //   --state flip=click:#flip-button   --state back=hash:#back   --state form=scroll:#signup
 //       (repeatable) capture the signature element's other states at desktop + mobile
 //   --wait 1500   extra settle time cap (ms); by default waits until running animations finish (max 6s)
@@ -75,13 +75,16 @@ if (!chromium) { console.error("Playwright not found in this project. Run: npm i
 const inside = (p, r) => p === r || p.startsWith(r.endsWith(sep) ? r : r + sep);
 let server = null, origin = null, root = null;
 if (file) {
-  const abs = files.map((f) => realpathSync(resolve(f)));
-  const cwd = realpathSync(process.cwd());
-  root = abs.every((p) => inside(p, cwd)) ? cwd : abs.map(dirname).reduce((x, y) => { while (!inside(y, x)) x = dirname(x); return x; });
+  // ponytail: serves non-dot files under cwd to the page; a per-page asset allowlist if that's ever too broad
+  root = realpathSync(process.cwd());
+  const outside = files.filter((f) => !inside(realpathSync(resolve(f)), root));
+  if (outside.length) { console.error(`--file pages must be inside the current folder (${root}); cd to the site folder first: ${outside.join(", ")}`); process.exit(2); }
   const MIME = { ".html": "text/html", ".htm": "text/html", ".css": "text/css", ".js": "text/javascript", ".mjs": "text/javascript", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".avif": "image/avif", ".ico": "image/x-icon", ".woff": "font/woff", ".woff2": "font/woff2", ".ttf": "font/ttf", ".otf": "font/otf", ".mp4": "video/mp4", ".webm": "video/webm", ".txt": "text/plain" };
-  const safe = (p) => { const r = realpathSync(p); if (!inside(r, root)) throw new Error("outside root"); return r; };
+  // no dotfiles/dot-dirs (.env, .git, .design-review…), nothing outside root, symlinks resolved first
+  const safe = (p) => { const r = realpathSync(p); if (!inside(r, root) || relative(root, r).split(sep).some((s) => s.startsWith("."))) throw new Error("denied"); return r; };
   server = createServer((req, res) => {
     try {
+      if (req.headers.host !== `127.0.0.1:${server.address().port}`) throw new Error("bad host"); // DNS-rebinding guard
       let p = safe(join(root, decodeURIComponent(new URL(req.url, "http://x").pathname)));
       if (statSync(p).isDirectory()) p = safe(join(p, "index.html"));
       const body = readFileSync(p);
