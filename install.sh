@@ -21,7 +21,7 @@ mkdir -p "$CL/skills" "$CL/agents" "$CL/commands"
 rm -rf "$CL/skills/agency-of-one"
 cp -R "$SRC/skills/agency-of-one" "$CL/skills/"
 cp "$SRC/agents/design-reviewer.md" "$SRC/agents/direction-critic.md" "$CL/agents/"
-cp "$SRC/commands/design-review.md" "$CL/commands/"
+cp "$SRC/commands/design-review.md" "$SRC/commands/upgrade-design.md" "$CL/commands/"
 chmod +x "$CL/skills/agency-of-one/scripts/"*.mjs
 echo "✓ skill, design-reviewer + direction-critic agents and /design-review command → $CL"
 
@@ -35,6 +35,9 @@ if [[ $HOOK == 1 ]]; then
     const s=JSON.parse(fs.readFileSync(p,"utf8")); s.hooks??={}; s.hooks.PostToolUse??=[];
     const exists=s.hooks.PostToolUse.some(h=>(h.hooks||[]).some(x=>(x.command||"").includes("hook-lint.mjs")));
     if(!exists) s.hooks.PostToolUse.push({matcher:"Edit|Write|MultiEdit",hooks:[{type:"command",command:cmd,timeout:30}]});
+    s.hooks.SessionStart??=[];
+    const ucmd=cmd.replace("hook-lint.mjs","update-check.mjs");
+    if(!s.hooks.SessionStart.some(h=>(h.hooks||[]).some(x=>(x.command||"").includes("update-check.mjs")))) s.hooks.SessionStart.push({hooks:[{type:"command",command:ucmd,timeout:5}]});
     fs.writeFileSync(p, JSON.stringify(s,null,2)+"\n"); console.log(exists?"✓ hook already present":"✓ lint-on-edit hook added → "+p);
   ' "$SETTINGS"
 fi
@@ -54,4 +57,5 @@ if [[ $MODE == project ]]; then
     echo "ℹ For screenshots: npm i -D playwright && npx playwright install chromium"
   fi
 fi
+echo "✓ installed Agency of One v$(cat "$SRC/skills/agency-of-one/VERSION")"
 echo "Done. In Claude Code: ask for UI work as usual. The skill triggers on its own, and /design-review runs the verification loop."

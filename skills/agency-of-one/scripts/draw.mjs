@@ -69,7 +69,16 @@ if (pickArg) {
   const hasS = dirs.every((d) => d.s !== null && !Number.isNaN(d.s));
   const atypical = dirs.filter((d) => d.t < 0.5);
   let pool;
-  if (hasS) {
+  let agencyMode = true; try { agencyMode = (JSON.parse(readFileSync(join(resolve(".design-review"), "last-draw.json"), "utf8")).mode || "agency") === "agency"; } catch {}
+  if (hasS && agencyMode) {
+    // Agency mode: beauty and fit first. Exclude only the clearly generic (t >= 0.7), then take the strongest (s >= 8, within 0.5 of best).
+    // If nothing reaches 8 after the critic's second round (--round 2), take the best available instead of looping forever.
+    const ok = dirs.filter((d) => d.t < 0.7 && d.s >= 8);
+    const round = Number(opt("round", "1"));
+    if (!ok.length && round >= 2) { const best = Math.max(...dirs.filter((d) => d.t < 0.7).map((d) => d.s)); const c = dirs.find((d) => d.t < 0.7 && d.s === best); console.log(`Round ${round}: nothing reached s>=8; taking the strongest non-generic direction.\n→ CHOSEN: ${c.k}`); process.exit(0); }
+    if (!ok.length) { console.log(`No direction is strong enough (s>=8) without being generic (t<0.7):\n${dirs.map((d) => `  ${d.k} t=${d.t} s=${d.s}`).join("\n")}\n→ Write 3 NEW directions aimed at beauty and brand fit (graft the critic's STRONGEST_IDEA_TO_STEAL), re-score, then pick again with --round 2.`); process.exit(3); }
+    const best = Math.max(...ok.map((d) => d.s)); pool = ok.filter((d) => d.s >= best - 0.5);
+  } else if (hasS) {
     const strong = atypical.filter((d) => d.s >= 7);
     if (!strong.length) { console.log(`No direction is both atypical (t<0.5) and strong (s>=7):\n${dirs.map((d) => `  ${d.k} t=${d.t} s=${d.s}`).join("\n")}\n→ Write 3 NEW directions (keep the critic's STRONGEST_IDEA_TO_STEAL), re-score with the direction-critic, and pick again.`); process.exit(3); }
     const best = Math.max(...strong.map((d) => d.s));
@@ -86,8 +95,8 @@ if (pickArg) {
 }
 
 // ---------------- AGENCY MODE (default) ----------------
-// Professional levers: quality reference, composition, brand device, palette strategy,
-// type strategy, and a brand hue sampled in OKLCH outside the default zones.
+// Professional levers: quality reference, composition, brand device, palette strategy, type strategy.
+// Colour: locked to the brand (brand.json) or drawn from the curated palette library. Never a random hue.
 const mode = opt("mode", "agency");
 function oklchToHex(L, C, H) {
   const h = (H * Math.PI) / 180, a = C * Math.cos(h), b = C * Math.sin(h);
@@ -96,29 +105,47 @@ function oklchToHex(L, C, H) {
   const lin = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
   return "#" + lin.map((c) => { c = Math.max(0, Math.min(1, c)); c = c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055; return Math.round(c * 255).toString(16).padStart(2, "0"); }).join("");
 }
-// Excluded hue zones (OKLCH degrees): 30–50 clay/terracotta (gen-2 tell), 225–335 corporate blue/navy/indigo/violet/magenta
-// (the business default + the AI tell). Everything else is fair game; the agent tunes chroma/lightness.
-const HUE_OK = (h) => !((h >= 30 && h < 50) || (h >= 225 && h < 335));
-function sampleHue() { for (;;) { const h = rand(360); if (HUE_OK(h) && !recent.includes(`hue ${h}`)) return h; } }
+
+// Brand lock is AUTOMATIC when .design-review/brand.json exists (from brand-extract). Override only with --no-brand "<reason>".
+const noBrand = args.includes("--no-brand") ? (opt("no-brand", "") || "") : null;
+const brandPath = args.includes("--brand") && opt("brand", null) && !opt("brand", "").startsWith("--") ? opt("brand") : ".design-review/brand.json";
+let brandArg = existsSync(brandPath) && noBrand === null ? brandPath : null;
+if (noBrand !== null && existsSync(brandPath) && !noBrand.trim()) { console.error('--no-brand needs a reason, e.g. --no-brand "client is rebranding; old crest retired"'); process.exit(1); }
+if (brandArg) { try { const bj = JSON.parse(readFileSync(brandArg, "utf8")); if (bj.monochrome || !bj.proposal?.brand) { console.error("(brand.json: monochrome or no brand colour; using a curated palette. Record this in DESIGN.md.)"); brandArg = null; } } catch { brandArg = null; } }
+const PALETTES = JSON.parse(readFileSync(join(here, "..", "references", "palettes.json"), "utf8"));
+function pickPalette(exclude = []) { const pool = PALETTES.filter((p) => !recent.includes(p.name.toLowerCase()) && !exclude.includes(p.name)); const src = pool.length ? pool : PALETTES; return src[rand(src.length)]; }
+const fmtPal = (p) => `${p.name} (${p.mood}; ${p.theme}) → ground ${p.ground} · groundAlt ${p.groundAlt} · ink ${p.ink} · muted ${p.muted} · brand ${p.brand} · brandDeep ${p.brandDeep} · brandLight ${p.brandLight} · accent ${p.accent}${p.brandText ? ` · text on brand: ${p.brandText}` : ""}${p.accentText ? ` · text on accent: ${p.accentText}` : ""}`;
 
 if (mode === "agency" && !redraw && !pickArg) {
   const A = decks.agency;
   const pickA = (k, n = 1) => { const pool = A[k].filter((c) => !recent.includes(c.toLowerCase())); const src = pool.length >= n ? pool : A[k]; const c = [...src]; const o = []; while (o.length < n && c.length) o.push(c.splice(rand(c.length), 1)[0]); return o; };
-  const hue = sampleHue();
-  const draw = { mode, project, date: new Date().toISOString().slice(0, 10), quality: pickA("quality_reference")[0], composition: pickA("composition")[0], device: pickA("brand_device")[0], palette: pickA("palette_strategy")[0], type: pickA("type_strategy")[0], hue, vetoed: [] };
+  let colour, colourLine;
+  if (brandArg) {
+    if (!existsSync(brandArg)) { console.error(`--brand: ${brandArg} not found. Run brand-extract.mjs first.`); process.exit(1); }
+    const b = JSON.parse(readFileSync(brandArg, "utf8"));
+    colour = { source: "brand", file: brandArg, proposal: b.proposal, brandHues: b.brandHues };
+    colourLine = `- **Colour: BRAND-LOCKED** (from ${brandArg}). Brand hues: ${(b.brandHues || []).slice(0, 3).map((h) => h.hex).join(", ")}. Proposed: ${Object.entries(b.proposal || {}).filter(([k]) => k[0] !== "_").map(([k, v]) => `${k} ${v}`).join(" · ")}${b.proposal?._accentOptions ? `\n  Accent options (none in the logo): ${b.proposal._accentOptions.join(" · ")}` : ""}\n  Never replace the brand hue. Refine lightness/chroma only, keep AA.`;
+  } else {
+    const pal = pickPalette(); colour = { source: "curated", palette: pal };
+    colourLine = `- **Palette (curated, contrast-checked):** ${fmtPal(pal)}${noBrand ? `\n  Brand lock overridden: ${noBrand}` : ""}\n  Use these values as the starting tokens; adjust lightness slightly if needed, never swap the hue family. Accent is for fills and marks; check it before using it as text.`;
+  }
+  const theme = colour.source === "curated" ? colour.palette.theme : "light";
+  const strategies = A.palette_strategy.filter((p) => theme === "dark" ? !/^(Pure white|Light, airy|Photography-led)/.test(p) : !/^Tinted dark ground/.test(p));
+  const draw = { mode, project, date: new Date().toISOString().slice(0, 10), quality: pickA("quality_reference")[0], composition: pickA("composition")[0], device: pickA("brand_device")[0], palette: strategies[rand(strategies.length)], type: pickA("type_strategy")[0], colour, vetoed: [] };
   mkdirSync(resolve(".design-review"), { recursive: true });
   writeFileSync(join(resolve(".design-review"), "last-draw.json"), JSON.stringify(draw, null, 2));
   console.log(`### Agency draw — ${project} (${draw.date})
 - **Quality reference** (a quality to match, not a look to copy): ${draw.quality}
 - **Composition system:** ${draw.composition}
 - **Brand device** (used with restraint, everywhere): ${draw.device}
-- **Palette strategy:** ${draw.palette}
-- **Brand hue:** OKLCH hue ${hue}° → previews: deep ${oklchToHex(0.32, 0.09, hue)} · mid ${oklchToHex(0.55, 0.14, hue)} · light ${oklchToHex(0.93, 0.03, hue)}
-  (tune chroma/lightness for the subject; keep the hue within ±12°. Navy/indigo/violet and clay were excluded on purpose.)
+- **Palette strategy** (how colour is distributed): ${draw.palette}
+${colourLine}
 - **Type strategy:** ${draw.type}
 
-Rules: these are levers, not decoration. The brand idea (Phase 1) decides how each is applied.
-You may veto ONE card with a written reason: --redraw quality|composition|device|palette|type|hue`);
+Rules: these are levers, not decoration. Beauty and brand fit come first; if a lever would make the site less beautiful for THIS client, veto it (one veto, written reason).
+--redraw quality|composition|device|palette|type|colour${brandArg ? " (colour is brand-locked: redraw ignored)" : ""}`);
+  // palette_strategy must suit the colour source: drop dark-ground strategies for light palettes and vice versa
+
   process.exit(0);
 }
 if (mode === "agency" && redraw) {
@@ -126,11 +153,11 @@ if (mode === "agency" && redraw) {
   if (!existsSync(lastP)) { console.error("No previous draw."); process.exit(1); }
   const dr = JSON.parse(readFileSync(lastP, "utf8"));
   const map = { quality: "quality_reference", composition: "composition", device: "brand_device", palette: "palette_strategy", type: "type_strategy" };
-  if (redraw === "hue") { dr.vetoed.push({ slot: "hue", card: dr.hue }); let h; do { h = sampleHue(); } while (h === dr.hue); dr.hue = h; }
+  if (redraw === "colour" || redraw === "hue") { if (dr.colour?.source === "brand") { console.error("Colour is brand-locked; it can't be redrawn."); process.exit(1); } const prev = dr.colour?.palette?.name; dr.vetoed.push({ slot: "colour", card: prev }); dr.colour = { source: "curated", palette: pickPalette([prev]) }; }
   else if (map[redraw]) { const pool = decks.agency[map[redraw]].filter((c) => c !== dr[redraw]); dr.vetoed.push({ slot: redraw, card: dr[redraw] }); dr[redraw] = pool[rand(pool.length)]; }
-  else { console.error("--redraw must be quality|composition|device|palette|type|hue in agency mode"); process.exit(1); }
+  else { console.error("--redraw must be quality|composition|device|palette|type|colour in agency mode"); process.exit(1); }
   writeFileSync(lastP, JSON.stringify(dr, null, 2));
-  console.log(`Redrew ${redraw}: ${redraw === "hue" ? `OKLCH hue ${dr.hue}° (mid ${oklchToHex(0.55, 0.14, dr.hue)})` : dr[redraw]}${dr.vetoed.length > 1 ? "\nWARNING: more than one veto used." : ""}`);
+  console.log(`Redrew ${redraw}: ${redraw === "colour" || redraw === "hue" ? fmtPal(dr.colour.palette) : dr[redraw]}${dr.vetoed.length > 1 ? "\nWARNING: more than one veto used." : ""}`);
   process.exit(0);
 }
 // ---------------- EXPRESSIVE MODE (--mode expressive) ----------------

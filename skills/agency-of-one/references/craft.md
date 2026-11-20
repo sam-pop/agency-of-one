@@ -2,6 +2,9 @@
 
 Distinctive is the floor. The bar is **"could this sit next to the best site in its category, and the best brand sites anywhere, without embarrassment?"** What separates world-class from merely unusual is almost never the concept. It's **finish**: a thousand small decisions made on purpose. This file is the checklist for those decisions. The reviewer scores against it.
 
+## Priority
+**Beautiful and right for the client first; distinctive second.** A page that avoids every AI tell but is plain or off-brand has failed. When a rule here conflicts with what would look better for this client, choose what looks better, record why in DESIGN.md §9, and flag it for the reviewer: it stands only if the blind reviewer scores that page's desirability ≥ 8. "Looks better" never overrides the beauty-check failures (caps labels, centred body, divider bars, initials, inconsistent photos, hidden content).
+
 ## 0. The three things that make people stop scrolling
 1. **One engineered set piece.** A single moment built to a level most sites never attempt: an interactive object, a scroll-choreographed sequence, a live specimen of the product, a typographic construction. It's built and polished *in isolation first* (Phase 3a), and it's the hero or immediately after it.
 2. **Typography set by hand.** Display type treated as an image: optically tightened, kerned, sized to the measure, with line breaks chosen and not left to chance.
@@ -22,6 +25,12 @@ Everything below serves those three.
 - **No orphans** in headings or short paragraphs (`text-wrap` plus manual `&nbsp;`).
 - **Font loading:** subset to the needed glyphs and weights; `font-display: swap` with metric-matched fallbacks (`size-adjust`, `ascent-override`) so nothing jumps; preload only the hero face.
 
+## 2b. Alignment
+- **Left-align body copy.** Centre only short display lines (one to two lines) and isolated calls to action. Centred paragraphs are hard to read and make every page look identical; the render check fails more than two.
+- Card text is left-aligned too, unless the card holds a single short line.
+- No all-caps headings or labels. Use sentence case everywhere; the lint and plan-diff fail caps labels. (A source-uppercase acronym like "NAACP" is fine.)
+- No short decorative divider bars between sections. Separate sections with space, scale, a ground change or a real rule system.
+
 ## 3. Space and grid
 - Derive spacing from the type: a base unit equal to the body line-height (e.g. 28px), with spacing steps as multiples or halves of it.
 - One declared grid (e.g. 12 columns, 24px gutters, max 1320px). **Every edge aligns to it**, and deliberate breaks of the grid are rare, large, and obvious.
@@ -38,6 +47,10 @@ Everything below serves those three.
 - Dark mode only if designed as its own composition; otherwise ship one excellent theme.
 
 ## 5. Imagery and illustration
+- **Normalise people photos before layout:** `node $S/scripts/photo-normalise.mjs <dir> --ratio 4:5 --backdrop <token hex>` crops every portrait to one ratio and face position and composites cut-outs onto one backdrop. Mixed crops and backdrops were the client's second complaint.
+- **No assets?** Licensed, art-directed stock is allowed for comps and atmosphere (places, materials, work), never as fake people or fake clients; label it as placeholder in the report.
+**People photos need a system.** Headshots arrive in every shape: cut-outs, phone photos, studio shots on coloured backdrops. Normalise them all to one treatment: the same crop ratio, the same rendered size, the same backdrop (for cut-outs, a backdrop in the brand palette, matching any existing studio backdrop), and the same frame shape. Never mix cut-outs on white with circles on blue. **No initials circles.** If someone has no photo, give them the same frame holding a quiet brand-pattern tile, or list them without photos in a separate, text-only roster.
+
 - **No stock, no generated photorealism.** Real photography from the client, or a clearly marked **art-direction slot**: a placeholder that states the shot (subject, framing, light, crop ratio, grade), e.g. *"Photo: Sam at a client's server cupboard, 3:2, available light, slightly underexposed, desaturated greens."* An art-direction slot reads as a professional comp. A grey box doesn't.
 - Illustration and diagrams drawn in code (SVG) use **one stroke weight, one corner logic, and the palette only**, and they must explain something real (the product, the process, the subject's object).
 - Every image has a reason, a consistent crop system, and real `alt` text.
@@ -46,7 +59,7 @@ Everything below serves those three.
 - **One choreographed moment** (usually the set piece or the page load): staggered with deliberate timing (60–120ms offsets), under about 900ms in total, with easing that has character (e.g. `cubic-bezier(.2,.7,0,1)` for arrivals; no bounce).
 - Prefer CSS scroll-driven animations (`animation-timeline: view()`) or View Transitions for state changes; JS only where needed.
 - Motion responds to the user: hover, press, open/close, flip. Each state change shows what changed.
-- Content is visible without JS and without motion. `prefers-reduced-motion` gets an instant, still-beautiful version.
+- **Content is visible without JS and without motion. Animations may enhance, never hide:** set the hidden state only from JS (e.g. add a `js` class to `<html>` first), and reveal on load if an observer hasn't fired within about 1.5s. Content stuck at opacity 0 fails the render check. `prefers-reduced-motion` gets an instant, still-beautiful version.
 - Never animate layout properties; use transform and opacity only, at 60fps.
 
 ## 7. Interaction and states
@@ -55,7 +68,13 @@ Everything below serves those three.
 - Links in text are distinguishable without colour alone.
 - The cursor and pointer affordances are correct; touch targets are at least 44px.
 
+- **Forms never fake success.** If there's no endpoint yet, the submit goes to email or shows a clear "not open online yet" state. A success message for a form that sent nothing is a launch-blocking bug.
+
+## 7b. Every page needs a header
+Interior pages (About, Leadership, Scholars, Pricing…) open with a designed page header, not a small centred title over a pale wash. Use scale, a real photograph or a strong typographic moment, the page's one-line purpose, and, where it helps, a key number. Each page should be recognisable from its fold. **Headers share a system, not a template:** the home page's set piece appears once; each interior page leads with its own content (Leadership: the chair and board; Scholarships: who can apply and the deadline). Never show the same people or links twice in one scroll, and don't add a pre-footer band that repeats the footer.
+
 ## 8. Responsive as art direction
+- **The 390px fold must show the page's primary action** (or the page's key fact on pages without one). If a headline wraps past four lines on mobile, shorten it or set it smaller.
 - Design the **390px composition** as its own layout: re-order, re-scale, and re-crop. Don't just stack the desktop.
 - Check 1440, 1024, 768, and 390. Use container queries for components that live in different widths.
 - Display type uses `clamp()` so the composition holds at every width; check line breaks at each breakpoint.
@@ -77,6 +96,8 @@ Everything below serves those three.
 ## Craft scoring (used by the reviewer, 0–10 each)
 | Axis | 10 looks like |
 |---|---|
+| Desirability | Beautiful; the client would be proud to send the link |
+| Brand fit | Palette, type and imagery belong with the logo and photos |
 | Concept & set piece | One unforgettable, subject-native moment, executed fully |
 | Typography | Hand-set display, impeccable text, real typographic details |
 | Layout & rhythm | A visible grid, deliberate variation, optical alignment |
@@ -87,4 +108,4 @@ Everything below serves those three.
 | Copy | Specific, short, could only be this company |
 | Technical finish | Fast, accessible, no rough edges at any width |
 
-**F50 bar: every axis ≥ 8.** A single 6 means it isn't done.
+**F50 bar: every axis ≥ 8, desirability and brand fit included.** A single 6 means it isn't done.

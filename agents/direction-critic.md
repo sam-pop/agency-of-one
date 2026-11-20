@@ -12,7 +12,9 @@ You are the executive creative director at a studio that does identity and web w
 
 ## Score each direction
 1. **Typicality t (0.00–1.00):** if you asked 20 strong AI models and 20 competent agencies for this brief, what share would land close to this direction (same skeleton, same mood, same devices)? Second-wave "tasteful AI" looks (cream + serif, black + acid, broadsheet hairlines, bento, neobrutalist) count as typical.
-2. **Strength s (0–10):** would you put this in front of a Fortune-50 CMO as one of the two routes? Weigh:
+2. **Strength s (0–10):** would you put this in front of a Fortune-50 CMO as one of the two routes? **Beauty and brand fit weigh most.** Weigh:
+   - **Beauty:** would it be genuinely lovely to look at, with this palette, type and imagery? Plain-but-unusual scores low.
+   - **Brand fit:** it uses the brand's own colours, marks and photos (see `.design-review/brand.json` if present) instead of fighting them.
    - **Fit:** it comes from the subject itself and couldn't belong to a competitor.
    - **Clarity:** a visitor gets the offer in 5 seconds.
    - **Set-piece potential:** there's one moment that could be jaw-dropping.

@@ -38,11 +38,21 @@ if (tok) {
   console.error("(note) No ```tokens block in DESIGN.md; parsed tables instead (less reliable).");
 }
 const steps = base && ratio ? Array.from({ length: 14 }, (_, i) => base * ratio ** (i - 4)) : [];
+function okl(h) { const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }; const [r, g, b] = [1, 3, 5].map((i) => lin(parseInt(h.slice(i, i + 2), 16)));
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), s2 = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  const L = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s2, A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s2, B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s2;
+  return { L, C: Math.hypot(A, B), H: (Math.atan2(B, A) * 180 / Math.PI + 360) % 360 }; }
 const rgbToHex = (s) => { const m = s.match(/(\d+),\s*(\d+),\s*(\d+)/); return m ? "#" + [m[1], m[2], m[3]].map((x) => (+x).toString(16).padStart(2, "0")).join("") : null; };
 const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const near = (h1, h2, t = 18) => { const [a1, b1, c1] = hexRgb(h1), [a2, b2, c2] = hexRgb(h2); return Math.hypot(a1 - a2, b1 - b2, c1 - c2) < t; };
 
 let fails = 0; const out = [];
+// ---- brand check: the palette must contain the logo's colour (brand.json from brand-extract) ----
+const brandFile = opt("brand", ".design-review/brand.json");
+if (existsSync(brandFile)) { try { const bj = JSON.parse(readFileSync(brandFile, "utf8")); const prim = bj.brandHues?.[0]?.hex;
+  if (prim && !bj.monochrome) { const P = okl(prim); const nearest = planHex.map((h) => ({ h, c: okl(h) })).filter((x) => x.c.C >= 0.04).map((x) => ({ ...x, d: Math.min(Math.abs(x.c.H - P.H), 360 - Math.abs(x.c.H - P.H)) })).sort((a, b) => a.d - b.d)[0];
+    if (!nearest || nearest.d > 25) { fails++; out.push(`\n✖ BRAND: the planned palette doesn't contain the logo colour ${prim} (OKLCH hue ${Math.round(P.H)}°; nearest planned ${nearest ? `${nearest.h} at ${Math.round(nearest.c.H)}°` : "none"}). Build the palette from brand.json.`); }
+    else out.push(`\n✓ BRAND: palette contains the logo hue (${prim} ≈ ${nearest.h})`); } } catch {} }
 for (const page of report.pages) {
   const m = page.metrics; if (!m) continue;
   out.push(`\n## ${page.route}`);
@@ -70,6 +80,33 @@ for (const page of report.pages) {
   if (m.centredTextShare > 0.7) { fails++; out.push(`✖ ${Math.round(m.centredTextShare * 100)}% of text blocks centred`); }
   if (m.upperTrackedLabels > 3) out.push(`▲ ${m.upperTrackedLabels} tracked uppercase labels rendered (eyebrow tell?)`);
   if (page.mobileHorizontalOverflow) { fails++; out.push("✖ horizontal overflow on mobile"); }
+  // ---- beauty checks (desktop + mobile + no-JS merged) ----
+  const D = page.beauty || {}, M = page.mobileBeauty || {};
+  if (page.beauty) {
+    const uniq = (a) => [...new Set(a.filter(Boolean))];
+    const inv = uniq([...(D.invisibleContent || []), ...(M.invisibleContent || [])]);
+    if (inv.length) { fails++; out.push(`✖ content left invisible after scrolling (a reveal animation never fired): ${inv.slice(0, 4).join(" | ")}`); }
+    if ((page.noJsInvisible || []).length) { fails++; out.push(`✖ content hidden until JavaScript runs (no-JS render): ${page.noJsInvisible.slice(0, 3).join(" | ")}. Hide only from JS, after adding a class to <html>.`); }
+    const ini = uniq([...(D.initialsAvatars || []), ...(M.initialsAvatars || [])]);
+    if (ini.length) { fails++; out.push(`✖ initials placeholders in a people grid (${ini.join(", ")}) read as missing photos: same frame for everyone, with a designed no-photo state`); }
+    const groups = [...(D.inconsistentImageGroups || []), ...(M.inconsistentImageGroups || [])].filter((g, k, a) => a.findIndex((x) => x.group === g.group) === k);
+    for (const g of groups) { fails++; out.push(`✖ inconsistent photos in "${g.group}" (${g.n} images: aspect ×${g.arSpread}, height ×${g.heightSpread}, backdrop spread ${g.backdropSpread}${g.off?.length ? `; odd ones out: ${g.off.join(", ")}` : ""}): one crop, size and backdrop for all`); }
+    const cen = Math.max(D.centredParagraphs || 0, M.centredParagraphs || 0);
+    if (cen > 2) { fails++; out.push(`✖ ${cen} centred multi-line text blocks (hard to read; every page looks the same): left-align body copy`); }
+    const caps = Math.max(D.capsHeadings || 0, M.capsHeadings || 0);
+    if (caps > 3) { fails++; out.push(`✖ ${caps} uppercase-transformed labels/headings (${(D.capsSamples || M.capsSamples || []).slice(0, 3).join(" | ")}): sentence case`); }
+    const bars = Math.max(D.dividerBars || 0, M.dividerBars || 0);
+    if (bars > 1) { fails++; out.push(`✖ ${bars} short decorative divider bars (incl. ::before/::after): let space, scale or a ground change separate sections`); }
+    const hdr = page.header || D.header;
+    if (hdr && hdr.h1Size && hdr.h1Size < 40 && !hdr.foldImage) { fails++; out.push(`✖ no designed page header: h1 is ${Math.round(hdr.h1Size)}px and the fold has no image. Give each page a real header (scale, photo or a strong typographic moment)`); }
+    else if (hdr && !hdr.h1Size) out.push("▲ no h1 on this page");
+    if ((D.softCount || 0) > 0) out.push(`▲ ${D.softCount} image(s) shown larger than their pixels allow on 2x screens: ${D.softImages.slice(0, 3).join(", ")}. Show smaller or ask the client for originals.`);
+    const hueOf = (h) => { const c = okl(h); return c.C < 0.04 ? null : c.H; };
+    const palHues = planHex.map(hueOf).filter((h) => h !== null);
+    const dist = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
+    const clashes = (D.imageHues || []).filter((im) => im.coverage >= 0.25 && palHues.length && palHues.every((ph) => dist(ph, im.hue) > 45));
+    if (clashes.length) out.push(`▲ people photos lean away from the palette: ${clashes.slice(0, 4).map((c) => `${c.img} (hue ${c.hue}°)`).join(", ")} vs palette hues ${palHues.map(Math.round).join("/")}°. Harmonise the photo treatment or check the palette against brand.json.`);
+  }
 }
 console.log(`plan-diff: ${planFonts.length} planned faces, ${planHex.length} planned colours${steps.length ? `, scale ${base}px × ${ratio}` : ""}${out.join("\n")}\n\n${fails ? `${fails} plan/implementation gap(s). Fix them, or amend DESIGN.md on purpose.` : "Plan and render agree."}`);
 process.exit(fails ? 1 : 0);

@@ -32,7 +32,7 @@ Generations: **G1** = the original SaaS look (2023–24). **G2** = the "tasteful
 | Beige-and-brass "premium" | ivory ground + muted olive/clay/brass, airy spacing | G2–3 | eye |
 | Dark signal | near-black + exactly one acid-green or vermilion accent | G2 | lint |
 | Near-black stand-ins | `#0B0B0B #111 #0a0a0a #09090b`, `bg-zinc-950`, `text-zinc-400` on `bg-zinc-900` | G2–3 | lint |
-| Pure absolutes | `#000`/`#fff`, `bg-black`/`bg-white` as the system | G1 | lint |
+| Pure black as the system | `#000` / `bg-black` for all ink and dark grounds (pure white grounds are fine) | G1 | lint |
 | Untouched shadcn | zinc/slate tokens, `--radius: 0.625rem`, default oklch block | G1–2 | lint |
 | Zero-chroma greys beside a brand hue | neutrals not tinted toward the ground | G2 | eye |
 | Default status colours | emerald `#10B981` success; rainbow status pills | G1 | eye |
@@ -136,6 +136,17 @@ Pages that avoid every G1–G3 tell still converge, this time on the **"honest a
 - **Palette & structure:** tinted off-white ground (never white), one dark band, hairline rules instead of any card, heading-left/content-right on every section, ending in a short form on a dark band plus a minimal footer with a disclaimer.
 - **Craft slips:** straight apostrophes, hyphens rendering as en dashes in some faces.
 Fixes: write as the company's best marketer, not a cautious assistant (confident, factual, no self-narration); label samples once in a small legal line; omit sections you can't fill rather than describing them; get real photography; vary ground (white is allowed), structure, and ending; use typographic quotes. `slop-lint` flags the code-detectable parts.
+
+## G5: what the brand-first build still did (blind panel on a v1.1 client rebuild)
+The palette, type and people treatment fixed the client's complaints, and the panel picked the rebuild 3 of 3. What it still caught:
+- **Invented marks:** a made-up seal or roundel ("BM" in a circle of text-on-path), often clipped, repeated near the real logo. A second mark competes with the client's own. Use the client's mark or nothing. (`slop-lint` flags `<textPath>`.)
+- **One hero stamped on every page:** the same set piece reused on each page, with only the order changed. Interior pages need their own header and content first (craft.md §7b).
+- **Shown twice:** the same people as a hero row and again as a list one scroll later; a pre-footer link band repeating the footer.
+- **Asset availability as hierarchy:** whoever had a usable photo got the big treatment and everyone else got a grey list. Normalise what exists (`photo-normalise.mjs`) and give peers one treatment.
+- **Dropped content:** real photos and nav items from the old site left out of the rebuild. A redesign never loses what the client already had without asking.
+- **Self-quoting:** quotes attributed to the organisation itself ("The Foundation, on Jaden"). Use a real person's words, or no quote.
+- **Fake success:** a form that shows "Thank you" with no endpoint; images upscaled past their pixels (soft on retina; plan-diff warns).
+- **Mobile fold without the action:** a six-line headline that pushes the primary action below the fold at 390px.
 
 ## Agency clichés (the "trying to win an award" look, wrong for business sites)
 Scroll-jacking and hijacked wheel speed · custom cursor blobs or trails · WebGL or 3D for no reason · gradient-mesh / aurora SaaS heroes · abstract glossy 3D shapes · giant marquee type bands · split-text letter-by-letter animations everywhere · noise and grain over everything · "Awwwards" preloaders with counters · horizontal scroll for the whole site · ultra-thin grey body text · stock handshake / skyline / people-at-laptops photography · enormous footer wordmark as the default ending.

@@ -1,3 +1,4 @@
+<!-- agency-of-one design v1.1 -->
 # DESIGN.md: <Project>
 
 > Visual source of truth for this repo. Claude reads this before any UI work and follows it.
@@ -12,6 +13,9 @@
 - **Proof inventory:** real: <…> · missing → slots: <…>
 - **Subject inventory** (artifacts, places, materials, vernacular): <…>
 - **Real assets supplied:** <logo / photos / screenshots / client names / numbers, or none>
+- **Brand colours (brand-extract.mjs):** <hues + proposed palette, or "new brand: curated palette">
+- **Client references (design-references/):** <sites, or none>
+- **People-photo system:** <crop ratio, size, backdrop, frame; what happens when a photo is missing>
 - **Human taste input:** <…, or "skipped: unattended">
 - **Hero sentence:** <…> · **Primary action label:** <…>
 

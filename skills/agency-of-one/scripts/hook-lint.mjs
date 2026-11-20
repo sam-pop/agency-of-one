@@ -21,5 +21,6 @@ if (r.status === 1) {
   console.error(`slop-lint flagged ${relative(cwd, fp)} — fix these before moving on (or add a justified exception to DESIGN.md + slop-lint.config.json):\n${out}`);
   process.exit(2);
 }
-if (/warning\(s\)/.test(out) && !/0 warning\(s\)/.test(out)) console.error(`slop-lint warnings for ${relative(cwd, fp)}:\n${out}`);
+// Warnings must reach the model while it edits: emit them as additionalContext (stdout JSON), not stderr.
+if (/warning\(s\)/.test(out) && !/0 warning\(s\)/.test(out)) process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: `slop-lint warnings for ${relative(cwd, fp)} (fix now, or justify in DESIGN.md §9):\n${out}`.slice(0, 9000) } }));
 process.exit(0);

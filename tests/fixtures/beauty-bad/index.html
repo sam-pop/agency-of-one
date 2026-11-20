@@ -1,0 +1,24 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Fixture</title><style>
+body{margin:0;font-family:Georgia,serif;background:#f4f6ef;color:#1d2414}
+h1{font-family:Arial Narrow,sans-serif;color:#2f3a12;text-align:center}
+.lead{text-align:center;max-width:760px;margin:0 auto;font-size:22px;line-height:1.6}
+.label{text-transform:uppercase;color:#5c6b21;text-align:center;font-size:26px}
+.bar{width:70px;height:4px;background:#8a9a55;margin:32px auto}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1000px;margin:40px auto}
+.card{background:#fff;padding:24px;text-align:center;border-radius:14px}
+.card img{width:200px}
+.av{width:120px;height:120px;border-radius:50%;background:#2f3a12;color:#9aa86a;display:flex;align-items:center;justify-content:center;font-size:40px;margin:auto}
+.reveal{opacity:0;transition:opacity .6s}.reveal.in{opacity:1}
+</style></head><body>
+<h1>Scholarship Opportunities</h1>
+<p class="lead">The foundation proudly supports exceptional young men on their journey to academic and professional success through scholarships, mentorship, and leadership development across the region.</p>
+<div class="bar"></div><h2 class="label">Eligibility criteria</h2>
+<p class="lead">All recipients are selected through a rigorous application and interview process conducted by the Scholarship Committee every spring.</p>
+<div class="bar"></div><h2 class="label">Apply now</h2>
+<p class="lead">Applications are open. Complete the form below and our committee will contact shortlisted applicants for an interview in April.</p>
+<div class="bar"></div><h2 class="label">Our leadership</h2><h2 class="label">Our scholars</h2>
+<div class="grid"><div class="card"><img class="ph" src="img/p1.jpg" alt="Trustee one"></div><div class="card"><img class="ph" src="img/p2.jpg" alt="Trustee two"></div><div class="card"><img class="ph" src="img/p3.jpg" alt="Trustee three"></div></div>
+<div class="grid"><div class="card"><img class="sc" src="img/s1.png" alt="s1"></div><div class="card"><img class="sc" src="img/s2.png" alt="s2"></div><div class="card"><img class="sc" src="img/s3.png" alt="s3"></div><div class="card"><div class="av">DE</div></div></div>
+<div class="grid"><div class="card reveal"><p>Dana Example, Treasurer</p></div></div>
+<script>/* observer that never fires (threshold too high) */ new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('in')),{threshold:1.5}).observe(document.querySelector('.reveal'));</script>
+</body></html>

@@ -2,7 +2,7 @@
 // designlog.mjs: cross-project memory so Claude doesn't repeat itself.
 // The log lives at ~/.claude/design-log.md (override with --log).
 //
-//   node designlog.mjs check --display "Face" --body "Face" --ground "#hex" --accent "#hex" --layout "archetype words" --medium "primary medium"
+//   node designlog.mjs check --project "Name" --display "Face" --body "Face" --ground "#hex" --accent "#hex" --layout "archetype words" --medium "primary medium" [--brand-locked] [--strict]
 //   node designlog.mjs add   --project "Name" (same flags) --signature "…" --media "a; b"
 //   node designlog.mjs list
 //
@@ -40,15 +40,19 @@ function parse() {
 }
 const cur = { display: opt("display"), body: opt("body"), ground: opt("ground"), accent: opt("accent"), layout: opt("layout"), medium: opt("medium") };
 
+// Same project (a redesign or a later round) never counts as a repeat of itself. When colour is
+// brand-locked (--brand-locked), ground and accent come from the client, so they aren't compared.
+const brandLocked = rest.includes("--brand-locked");
+const sameProject = (p) => opt("project") && p.project.replace(/\s*\(\d{4}-\d{2}-\d{2}\)\s*$/, "").trim().toLowerCase() === opt("project").trim().toLowerCase();
 function check() {
-  const past = parse(); const issues = [];
+  const past = parse().filter((p) => !sameProject(p)); const issues = [];
   past.slice(-6).forEach((p) => { if (cur.display && p.display.toLowerCase() === cur.display.toLowerCase()) issues.push(`display face "${cur.display}" was used in "${p.project}" (last 6 projects)`); });
   for (const p of past.slice(-10)) {
     const hits = [];
     if (cur.display && p.display.toLowerCase() === cur.display.toLowerCase()) hits.push("display");
     if (cur.body && p.body.toLowerCase() === cur.body.toLowerCase()) hits.push("body");
-    if (cur.ground && groundKey(p.ground) === groundKey(cur.ground)) hits.push("ground");
-    if (cur.accent && hueKey(p.accent) === hueKey(cur.accent)) hits.push("accent");
+    if (!brandLocked && cur.ground && groundKey(p.ground) === groundKey(cur.ground)) hits.push("ground");
+    if (!brandLocked && cur.accent && hueKey(p.accent) === hueKey(cur.accent)) hits.push("accent");
     const lw = words(cur.layout), pw = words(p.layout); const inter = [...lw].filter((w) => pw.has(w)).length;
     if (lw.size && inter / Math.max(1, Math.min(lw.size, pw.size)) >= 0.5) hits.push("layout");
     if (cur.medium && p.medium.toLowerCase() === cur.medium.toLowerCase()) hits.push("medium");
@@ -59,9 +63,13 @@ function check() {
 
 if (cmd === "list") { const p = parse(); console.log(p.length ? p.map((x) => `${x.project} | ${x.display} / ${x.body} | ground ${x.ground} accent ${x.accent} | ${x.medium}`).join("\n") : `(empty log at ${logPath})`); process.exit(0); }
 const issues = check();
-if (cmd === "check") { console.log(issues.length ? `REPEAT:\n- ${issues.join("\n- ")}\nChange the repeated axes before building.` : "OK: no repetition against the design log."); process.exit(issues.length ? 1 : 0); }
+// Agency mode: a repeat is advice (business sites legitimately share conventions); the display-face rule
+// still blocks. Expressive mode (--strict) blocks on any repeat.
+const strict = rest.includes("--strict");
+const blocking = strict ? issues : issues.filter((i) => /^display face/.test(i));
+if (cmd === "check") { console.log(issues.length ? `${blocking.length ? "REPEAT" : "ADVISORY"}:\n- ${issues.join("\n- ")}\n${blocking.length ? "Change the repeated axes before building." : "Consider changing these axes; not blocking in agency mode."}` : "OK: no repetition against the design log."); process.exit(blocking.length ? 1 : 0); }
 if (cmd === "add") {
-  if (issues.length && !rest.includes("--force")) { console.error(`Refusing to log a repeat:\n- ${issues.join("\n- ")}`); process.exit(1); }
+  if (blocking.length && !rest.includes("--force")) { console.error(`Refusing to log a repeat:\n- ${issues.join("\n- ")}`); process.exit(1); }
   mkdirSync(dirname(logPath), { recursive: true });
   appendFileSync(logPath, `\n## ${opt("project", "untitled")} (${new Date().toISOString().slice(0, 10)})\n- display: ${cur.display}\n- body: ${cur.body}\n- ground: ${cur.ground}\n- accent: ${cur.accent}\n- layout: ${cur.layout}\n- medium: ${cur.medium}\n- media: ${opt("media")}\n- signature: ${opt("signature")}\n`);
   console.log(`Logged to ${logPath}`); process.exit(0);

@@ -8,6 +8,9 @@ Two failure modes to avoid:
 
 ---
 
+## Step 0a: The brand you already have decides the colour
+If the client has a logo, crest, existing site or people photos, **run `node $S/scripts/brand-extract.mjs`** (it auto-discovers logo, favicon, OG and team images, or takes paths). The palette is built around those brand hues: once `.design-review/brand.json` exists, `draw.mjs` locks colour to them automatically (`--no-brand "<reason>"` only for a client-requested rebrand). Never pick a palette that fights the logo or the backdrops of the client's photos. A crest-blue brand on an olive site was the failure that taught this rule. Random or curated palettes are only for brand-new brands with nothing to extract.
+
 ## Step 0: Ask for proof first (the biggest lever)
 In blind reviews, credibility and imagery stall at about 6/10 without real people, contacts, client names, and photos, whatever the design quality. **When the user is present, ask for these before designing**: a photo of the people, 2–3 factual bio lines, client names or a case study, contact and legal details, and any real numbers. Unattended: proceed, slot them, and put "supply proof to unlock the last 20%" at the top of your report.
 
@@ -20,14 +23,16 @@ In blind reviews, credibility and imagery stall at about 6/10 without real peopl
 6. **Proof inventory:** what real proof exists (clients, numbers, case studies, credentials, people)? Never invent any. Missing proof becomes a **proof slot** (see §5).
 
 ## Step 2: The identity system (the draw supplies the levers)
+- **Never invent a mark.** If the client has a logo or crest, it is the only mark: no made-up seals, roundels, monograms or badges beside it.
+- **A redesign keeps what the client already has.** Every real photo, page and nav item on the old site carries over unless the client agrees to drop it. If an asset looks wrong (a mislabelled photo), ask; don't silently leave it out.
 - **Wordmark:** if there's no logo, set a *typographic wordmark* with care: chosen face, custom spacing, maybe one modified letter. No icon + text by default and no generic monogram. It gets its own small spec in DESIGN.md.
-- **Brand hue** (sampled): tune it into a working palette of a deep, a mid, a light tint, tinted neutrals, and ink. Test contrast. The hue should feel *owned*, not "a colour".
+- **Colour** (brand-locked from brand.json, or the drawn curated palette): keep the logo colour verbatim as the brand; derive a deep, a light tint, tinted neutrals and ink around it. Use brandForText for text on light grounds. Test contrast. The colour should feel *owned*, not "a colour".
 - **Type strategy** (drawn): pick faces via `typography.md`. In agency mode, prefer faces with real families (weights, italics, tabular figures, small caps) because business sites need range.
 - **Grid & composition** (drawn): declare the grid and the composition system and apply them everywhere.
 - **Brand device** (drawn): one recurring element applied with restraint. It's the thread that makes 10 pages feel like one brand.
 - **Imagery style:** one sentence (e.g. *"Natural-light documentary photography of real work, tight crops on hands and materials, slightly cool grade"*) plus a crop system.
 - **Motion principle:** one sentence (e.g. *"Things settle into place: short, firm, never bouncy"*) and the one choreographed moment.
-- **Voice:** three rules plus banned words. Write as the company's **best marketer**, not a cautious assistant: confident claims built from the facts you have, no self-narration, no negative definitions ("Nobody else.", "What we are not"), no hedging. Label samples once, in one small legal-style line. If you can't fill a section with facts, **cut the section**; never describe what it would say (G4 tells in `tells.md`).
+- **Voice:** three rules plus banned words. Write as the company's **best marketer**, not a cautious assistant: confident claims built from the facts you have, no self-narration, no negative definitions ("Nobody else.", "What we are not"), no hedging. Label samples once, in one small legal-style line. Never attribute a quote to the organisation itself or to a person who didn't say it; use real words or no quote. If you can't fill a section with facts, **cut the section**; never describe what it would say (G4 tells in `tells.md`).
 
 ## Step 3: Page architecture for a business
 Not a template; choose and order only the beats this business needs:
