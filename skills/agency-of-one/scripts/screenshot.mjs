@@ -93,6 +93,7 @@ if (file) {
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   origin = `http://127.0.0.1:${server.address().port}`;
+  console.log(`serving ${root} on ${origin} (dotfiles and anything outside it are refused)`);
 }
 const browser = await chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {});
 const report = { base, generatedAt: new Date().toISOString(), pages: [] };

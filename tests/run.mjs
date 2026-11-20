@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Self-tests: the linter catches the slop fixture, stays silent on the clean one,
 // the hook exits 2 on errors, the design log detects repeats, and the deck draws valid cards.
-import { spawnSync } from "node:child_process";
+import { spawnSync, spawn } from "node:child_process";
+import http from "node:http";
 import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync, cpSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
@@ -105,13 +106,30 @@ ok(pd.status !== 0 && /BRAND/.test(pd.stdout), "plan-diff fails a palette withou
 ok(spawnSync("bash", ["-n", join(root, "update.sh")]).status === 0 && /main "\$@"/.test(readFileSync(join(root, "update.sh"), "utf8")), "update.sh is wrapped in main()");
 // rendered checks (only where Playwright is installed)
 let pwPath = null; try { pwPath = (await import("node:module")).createRequire(join(process.cwd(), "package.json")).resolve("playwright"); } catch {}
+ok(!readFileSync(join(S, "screenshot.mjs"), "utf8").includes("--allow-file-access-from-files\""), "screenshot never launches Chromium with --allow-file-access-from-files");
 if (pwPath) {
   const rdir = mkdtempSync(join(tmpdir(), "aoo-r-")); spawnSync("cp", ["-r", ...["index.html", "img", "DESIGN.md"].map((f) => join(bad, f)), rdir]);
   spawnSync("ln", ["-s", join(process.cwd(), "node_modules"), join(rdir, "node_modules")]);
-  run([join(S, "screenshot.mjs"), "--file", "index.html"], { cwd: rdir, timeout: 180000 });
+  // secrets the --file server must never hand to the page
+  writeFileSync(join(rdir, ".env"), "SECRET=1\n"); mkdirSync(join(rdir, ".secret")); writeFileSync(join(rdir, ".secret", "x"), "x");
+  const child = spawn(process.execPath, [join(S, "screenshot.mjs"), "--file", "index.html"], { cwd: rdir });
+  const killer = setTimeout(() => child.kill(), 180000);
+  const exited = new Promise((r) => child.on("exit", r));
+  let sOut = ""; const origin = await new Promise((r) => { child.stdout.on("data", (d) => { sOut += d; const m = sOut.match(/serving .* on (http:\/\/127\.0\.0\.1:\d+)/); if (m) r(m[1]); }); exited.then(() => r(null)); });
+  ok(!!origin, "screenshot --file serves on 127.0.0.1");
+  if (origin) {
+    const get = (path, host) => new Promise((r) => { const u = new URL(origin); const q = http.request({ host: u.hostname, port: u.port, path, headers: host ? { host } : {} }, (x) => { x.resume(); r(x.statusCode); }); q.on("error", () => r(0)); q.end(); });
+    ok(await get("/index.html") === 200, "server serves the page");
+    for (const p of ["/.env", "/.secret/x", "/%2eenv", "/../../../../etc/passwd", "/%2e%2e/%2e%2e/%2e%2e/etc/passwd"]) ok(await get(p) === 404, `server refuses ${p}`);
+    ok(await get("/index.html", `evil.example:${new URL(origin).port}`) === 404, "server refuses a foreign Host header (DNS rebinding)");
+  }
+  await exited; clearTimeout(killer);
   const rp = run([join(S, "plan-diff.mjs")], { cwd: rdir }).stdout;
   for (const [re, m] of [[/inconsistent photos/, "mixed photo backdrops"], [/centred multi-line/, "centred text"], [/uppercase-transformed/, "caps labels"], [/divider bars/, "divider bars"]]) ok(re.test(rp), `rendered beauty check: ${m}`);
-  rmSync(rdir, { recursive: true, force: true });
-} else console.log("· rendered checks skipped (no Playwright in this folder)");
+  const elsewhere = mkdtempSync(join(tmpdir(), "aoo-o-"));
+  ok(run([join(S, "screenshot.mjs"), "--file", join(rdir, "index.html")], { cwd: elsewhere, timeout: 60000 }).status === 2, "screenshot refuses --file pages outside the current folder");
+  rmSync(elsewhere, { recursive: true, force: true }); rmSync(rdir, { recursive: true, force: true });
+} else if (process.env.AOO_REQUIRE_RENDER) ok(false, "rendered checks required (AOO_REQUIRE_RENDER) but Playwright not found");
+else console.log("· rendered checks skipped (no Playwright in this folder)");
 rmSync(tmp, { recursive: true, force: true });
 console.log(fail ? `\n${fail} failed` : "\nall tests passed"); process.exit(fail ? 1 : 0);
